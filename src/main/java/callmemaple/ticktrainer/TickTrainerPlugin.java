@@ -1,6 +1,5 @@
 package callmemaple.ticktrainer;
 
-import callmemaple.ticktrainer.item.Pickaxe;
 import callmemaple.ticktrainer.item.ResourceNodes;
 import callmemaple.ticktrainer.item.TickMethods;
 import callmemaple.ticktrainer.ui.TickTrainerOverlay;
@@ -27,7 +26,6 @@ import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
-import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.*;
 
@@ -60,36 +58,37 @@ public class TickTrainerPlugin extends Plugin
 	@Inject
 	private TickTrainerConfig config;
 
-	@Inject CycleState cycleState;
+	@Inject
+	private TickManager tickManager;
 
-	private List<InputEvent> clicks;
-	private MenuOptionClicked test;
+	@Inject CycleState cycleState;
 
 	private static final Set<MenuAction> MENU_ACTIONS_INTERRUPT = ImmutableSortedSet.of(
 			WALK, WIDGET_TARGET_ON_GROUND_ITEM, WIDGET_TARGET_ON_PLAYER,
 			WIDGET_TARGET_ON_NPC, WIDGET_TARGET_ON_GAME_OBJECT, WIDGET_TARGET_ON_WIDGET,
 			WIDGET_FIRST_OPTION, WIDGET_SECOND_OPTION, WIDGET_THIRD_OPTION, WIDGET_FOURTH_OPTION, WIDGET_FIFTH_OPTION);
+	private Object eventInjector;
 
 	@Override
 	protected void startUp()
 	{
-		clicks = new ArrayList<>();
 		overlayManager.add(overlay);
+		eventInjector = injector.getInstance(TickManager.class);
+		eventBus.register(eventInjector);
 		log.info("tick trainer started!");
 	}
 
 	@Override
 	protected void shutDown()
 	{
-		clicks.clear();
 		overlayManager.remove(overlay);
+		eventBus.unregister(eventInjector);
 		log.info("tick trainer stopped!");
 	}
 
 	@Subscribe
 	public void onGameTick(GameTick gameTick)
 	{
-		log.info("clicked consumed??? {}", test.isConsumed());
 		cycleState.increment();
 		/*
 		on tick
@@ -140,9 +139,17 @@ public class TickTrainerPlugin extends Plugin
 		{
 			return;
 		}
-		InputEvent inputEvent = new InputEvent(action, playerLocation, tickClicked);
-		log.info("found inv action click: {}", action);
+		long predictedTime = tickManager.getNextTickTime();
+		long currentTime = System.currentTimeMillis();
+		if (predictedTime - currentTime < 150)
+		{
+			predictedTime += tickManager.getAverageTickTime();
+		}
+		log.info("predicting:{} timestamp:{}", predictedTime, currentTime);
+		InputEvent inputEvent = new InputEvent(action, playerLocation, tickClicked, currentTime, predictedTime);
 
+		log.info("found inv action click: {}", inputEvent);
+		log.info("stat: {}", cycleState.getStatus());
 		cycleState.startCycle(inputEvent);
 	}
 
@@ -156,19 +163,21 @@ public class TickTrainerPlugin extends Plugin
 			case GAME_OBJECT_THIRD_OPTION:
 			case GAME_OBJECT_FOURTH_OPTION:
 			case GAME_OBJECT_FIFTH_OPTION:
-				log.info("game object click: {}->{} {}", evt.getMenuOption(), evt.getMenuTarget(), evt.getId());
 				if (ResourceNodes.isNode(evt.getId()))
 				{
+					log.info("menuclick tick:{} {}->{} id:{} timestamp:{}", client.getTickCount(), evt.getMenuOption(), evt.getMenuTarget(), evt.getId(), System.currentTimeMillis());
 					cycleState.setObjectTarget(evt.getId());
 				}
 				break;
 			case WIDGET_TARGET_ON_WIDGET:
 				startTickCycle(evt);
+				log.info("menuclick tick:{} {}->{} id:{} timestamp:{}", client.getTickCount(), evt.getMenuOption(), evt.getMenuTarget(), evt.getId(), System.currentTimeMillis());
+				break;//?
 			default:
 				if (MENU_ACTIONS_INTERRUPT.contains(evt.getMenuAction()))
 				{
+					log.info("menuclick_interrupt tick:{} {}->{} id:{} timestamp:{}", client.getTickCount(), evt.getMenuOption(), evt.getMenuTarget(), evt.getId(), System.currentTimeMillis());
 					cycleState.setObjectTarget(-1);
-					test = evt;
 				}
 		}
 	}
@@ -180,10 +189,13 @@ public class TickTrainerPlugin extends Plugin
 		{
 			return;
 		}
-		WorldPoint playerLocation = event.getActor().getWorldLocation();
-		log.info("animation: {} on {}, {},{}", event.getActor().getAnimation(), client.getTickCount(), playerLocation.getX(), playerLocation.getY());
+
 		if (cycleState.getStatus() == WAITING_FOR_ANIMATION && cycleState.getMethod().getAnimationId() == event.getActor().getAnimation())
 		{
+			long currentTime = System.currentTimeMillis();
+			long predictedTime = cycleState.getPredictedTickTime();
+			log.info("animation: {} tick:{} at {}", event.getActor().getAnimation(), client.getTickCount(), currentTime);
+			log.info("predicted:{} actual:{} {}", predictedTime, currentTime, (predictedTime>currentTime ? "+" : "-" ) + Math.abs(predictedTime-currentTime));
 			cycleState.confirmAnimation();
 		}
 	}

@@ -24,34 +24,26 @@ import static callmemaple.ticktrainer.Error.*;
 @Slf4j
 public class CycleState
 {
-    @Getter
-    private Set<Error> errors;
-
-    @Getter
-    private WorldPoint startLocation;
-
-    @Getter
-    private CycleStatus status;
-
     @Inject
     private Client client;
 
     @Inject
     private TickTrainerConfig config;
 
-    @Getter
-    private int tickCount = 0;
-    @Getter
-    private float lockedOutTimer = 0;
-    private boolean active;
-    @Getter
-    private TickMethods method;
+    @Getter private int tickCount;
+    @Getter int startingTick;
+    @Getter private float lockedOutTimer;
+    @Getter private TickMethods method;
+    @Getter private Set<Error> errors;
+    @Getter private WorldPoint startLocation;
+    @Getter private CycleStatus status;
+    @Getter private long startTimestamp;
+    @Getter private long predictedTickTime;
 
     @Getter
     @Setter
     // TODO change this to be the location or the object itself
     private int objectTarget;
-
     CycleState()
     {
         status = IDLE;
@@ -65,10 +57,9 @@ public class CycleState
         {
             return;
         }
-
-        active = true;
         method = inputEvent.getMethod();
         startLocation = inputEvent.getStartLocation();
+        predictedTickTime = inputEvent.getPredictedTickTime();
         errors = new HashSet<>();
         status = WAITING_FOR_ANIMATION;
         tickCount = 0;
@@ -78,6 +69,7 @@ public class CycleState
     public void increment()
     {
         tickCount++;
+        log.info("onGameTick {} tickCount:{} totalTick:{} timestamp:{}", status, tickCount, client.getTickCount(), System.currentTimeMillis());
         switch (status)
         {
             case WAITING_FOR_ANIMATION:
@@ -176,7 +168,9 @@ public class CycleState
 
     public boolean isPlayerInTickAnimation()
     {
-        int animationId = client.getLocalPlayer().getAnimation();
+        Player player = client.getLocalPlayer();
+        log.info("check animation {} {}", player.getAnimation(), player.getAnimationFrame());
+        int animationId = player.getAnimation();
         return animationId == method.getAnimationId();
     }
 
@@ -208,7 +202,7 @@ public class CycleState
                     continue;
                 }
 
-                log.info("found adjacentTile {},{}", tile.getWorldLocation().getX(), tile.getWorldLocation().getY());
+                //log.info("found adjacentTile {},{}", tile.getWorldLocation().getX(), tile.getWorldLocation().getY());
 
                 GameObject[] gameObjects = tile.getGameObjects();
                 if (gameObjects == null)
@@ -221,24 +215,13 @@ public class CycleState
                     if (gameObject != null && gameObject.getSceneMinLocation().equals(tile.getSceneLocation()))
                     {
                         // Check if object valid rock, tree, etc
-                        log.info("found object "+gameObject.getId());
+                        //log.info("found object "+gameObject.getId());
                         return true;
                     }
                 }
             }
         }
         return false;
-    }
-
-
-    public boolean isActive()
-    {
-        return active;
-    }
-
-    public int getTotalTick()
-    {
-        return client.getTickCount();
     }
 
     public void confirmAnimation()

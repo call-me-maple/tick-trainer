@@ -19,16 +19,6 @@ public interface TickTrainerConfig extends Config
 		return MINIMAL;
 	}
 
-	@ConfigItem(
-			keyName = "autoRepeat",
-			name = "Auto Repeat",
-			description = ""
-	)
-	default boolean autoRepeat()
-	{
-		return false;
-	}
-
 	@Range(
 			min = 1,
 			max = 300
