@@ -1,24 +1,14 @@
 package callmemaple.ticktrainer;
 
-import callmemaple.ticktrainer.item.ResourceNodes;
-import callmemaple.ticktrainer.item.TickMethods;
 import callmemaple.ticktrainer.ui.TickTrainerOverlay;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.inject.Provides;
 import javax.inject.Inject;
 
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
-import net.runelite.api.InventoryID;
-import net.runelite.api.Item;
-import net.runelite.api.ItemContainer;
 import net.runelite.api.MenuAction;
-import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.ClientTick;
-import net.runelite.api.events.GameTick;
-import net.runelite.api.events.MenuOptionClicked;
-import net.runelite.api.widgets.Widget;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
@@ -30,8 +20,6 @@ import net.runelite.client.ui.overlay.OverlayManager;
 import java.util.*;
 
 import static net.runelite.api.MenuAction.*;
-import static callmemaple.ticktrainer.item.TickMethods.UNKNOWN;
-import static callmemaple.ticktrainer.item.TickMethods.findInventoryAction;
 
 @Slf4j
 @PluginDescriptor(
@@ -61,7 +49,7 @@ public class TickTrainerPlugin extends Plugin
 	private TickManager tickManager;
 
 	@Inject
-	private SkillingCycle skillingCycle;
+	private TickMethodCycle tickMethodCycle;
 
 	@Inject
 	private PlayerState playerState;
@@ -77,9 +65,10 @@ public class TickTrainerPlugin extends Plugin
 	{
 		overlayManager.add(overlay);
 		Collections.addAll(eventHandlers,
-				injector.getInstance(TickManager.class),
-				injector.getInstance(SkillingCycle.class),
-				injector.getInstance(PlayerState.class));
+				injector.getInstance(TickManager.class),		// tracks game ticks
+				injector.getInstance(TickMethodCycle.class),	// tracks tick method cycles
+				injector.getInstance(SkillingCycle.class),		// tracks regular skilling cycles
+				injector.getInstance(PlayerState.class));		// tracks the players location
 		eventHandlers.forEach(eventBus::register);
 		log.info("tick trainer started!");
 	}

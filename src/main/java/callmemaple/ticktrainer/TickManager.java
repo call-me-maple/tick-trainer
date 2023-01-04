@@ -94,10 +94,19 @@ public class TickManager
         this.lastTickTime = now;
     }
 
-    public long getNextTickTime()
+    /**
+     * Predicts whether a click will be processed by the server this tick or next
+     * @return predicted tick
+     */
+    public int getPredictedTick()
     {
-        return this.lastTickTime + this.getAverageTickTime(); // TODO maybe a little bit extra time too?
+        int predictedTick = client.getTickCount();
+        long predictedTime = lastTickTime + getAverageTickTime();
+        long currentTime = System.currentTimeMillis();
+        if (predictedTime - currentTime < 150)
+        {
+            return predictedTick + 1;
+        }
+        return predictedTick;
     }
-
-
 }

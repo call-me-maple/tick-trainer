@@ -20,7 +20,7 @@ public class TickTrainerOverlay extends OverlayPanel
     private final TickTrainerConfig config;
 
     @Inject
-    private SkillingCycle skillingCycle;
+    private TickMethodCycle tickMethodCycle;
 
     @Inject
     private TickTrainerOverlay(TickTrainerPlugin plugin, TickTrainerConfig config)
@@ -55,16 +55,16 @@ public class TickTrainerOverlay extends OverlayPanel
         panelComponent.getChildren().clear();
 
         List<SkillingCycleStatus> displayStatuses = new ArrayList<>(Arrays.asList(config.errorsOnly() ? new SkillingCycleStatus[]{ERROR} : values()));
-        if (!displayStatuses.contains(skillingCycle.getStatus()))
+        if (!displayStatuses.contains(tickMethodCycle.getStatus()))
         {
             return panelComponent.render(graphics);
         }
 
-        switch (skillingCycle.getStatus())
+        switch (tickMethodCycle.getStatus())
         {
             case ON_CYCLE:
                 panelComponent.getChildren().add((LineComponent.builder())
-                        .left("on cycle tick " + skillingCycle.getTickCycle())
+                        .left("on cycle tick " + tickMethodCycle.getTickCycle())
                         .leftColor(config.onCycleColor())
                         .build());
                 break;
@@ -80,7 +80,7 @@ public class TickTrainerOverlay extends OverlayPanel
                         .build());
                 break;
             case ERROR:
-                for (Error error: skillingCycle.getErrors())
+                for (Error error: tickMethodCycle.getErrors())
                 {
                     panelComponent.getChildren().add((LineComponent.builder())
                             .left("error: " + error.getMessage(config.displayMode()))
