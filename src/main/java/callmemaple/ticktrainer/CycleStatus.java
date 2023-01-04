@@ -2,7 +2,7 @@ package callmemaple.ticktrainer;
 
 public enum CycleStatus
 {
-    WAITING_FOR_ANIMATION,
+    DELAYED,
     ON_CYCLE,
     ERROR,
     IDLE,

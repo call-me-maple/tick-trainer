@@ -30,6 +30,9 @@ public class CycleState
     @Inject
     private TickTrainerConfig config;
 
+    @Inject
+    private TickManager tickManager;
+
     @Getter private int tickCount;
     @Getter int startingTick;
     @Getter private float lockedOutTimer;
@@ -61,25 +64,23 @@ public class CycleState
         startLocation = inputEvent.getStartLocation();
         predictedTickTime = inputEvent.getPredictedTickTime();
         errors = new HashSet<>();
-        status = WAITING_FOR_ANIMATION;
-        tickCount = 0;
         objectTarget = -1;
+        tickCount = 1;
+        long currentTime = System.currentTimeMillis();
+        // TODO predict total tick not timestamp?
+        status = Math.abs(predictedTickTime - currentTime) <= 100 ? ON_CYCLE : DELAYED;
     }
 
     public void increment()
     {
-        tickCount++;
-        log.info("onGameTick {} tickCount:{} totalTick:{} timestamp:{}", status, tickCount, client.getTickCount(), System.currentTimeMillis());
+        long currentTime = System.currentTimeMillis();
+        log.info("onGameTick {} tickCount:{} totalTick:{} timestamp:{}", status, tickCount, client.getTickCount(), currentTime);
         switch (status)
         {
-            case WAITING_FOR_ANIMATION:
-                if (tickCount == 2)
-                {
-                    addError(USED_ITEM_TOO_SOON);
-                } else if (tickCount == 3)
-                {
-                    status = IDLE;
-                }
+            case DELAYED:
+                log.info("predict too far skipping p:{} c:{}", predictedTickTime, currentTime);
+                tickCount = 0;
+                status = ON_CYCLE;
                 break;
             case ON_CYCLE:
                 log.info("incrementing current cycle, totalTick {} cycleTick {}", client.getTickCount(), tickCount);
@@ -132,6 +133,7 @@ public class CycleState
                 }
                 break;
         }
+        tickCount++;
     }
 
     public boolean hasPlayerMoved()

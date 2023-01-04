@@ -182,24 +182,6 @@ public class TickTrainerPlugin extends Plugin
 		}
 	}
 
-	@Subscribe
-	public void onAnimationChanged(AnimationChanged event)
-	{
-		if (!(event.getActor() instanceof Player))
-		{
-			return;
-		}
-
-		if (cycleState.getStatus() == WAITING_FOR_ANIMATION && cycleState.getMethod().getAnimationId() == event.getActor().getAnimation())
-		{
-			long currentTime = System.currentTimeMillis();
-			long predictedTime = cycleState.getPredictedTickTime();
-			log.info("animation: {} tick:{} at {}", event.getActor().getAnimation(), client.getTickCount(), currentTime);
-			log.info("predicted:{} actual:{} {}", predictedTime, currentTime, (predictedTime>currentTime ? "+" : "-" ) + Math.abs(predictedTime-currentTime));
-			cycleState.confirmAnimation();
-		}
-	}
-
 	@Provides
 	TickTrainerConfig provideConfig(ConfigManager configManager)
 	{

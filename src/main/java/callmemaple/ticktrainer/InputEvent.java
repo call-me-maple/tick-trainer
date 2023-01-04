@@ -12,4 +12,5 @@ public class InputEvent
     private final int tick;
     private final long timestamp;
     private final long predictedTickTime;
+    //private final long predictedTick;
 }

@@ -75,9 +75,9 @@ public class TickTrainerOverlay extends OverlayPanel
                         .leftColor(config.idleColor())
                         .build());
                 break;
-            case WAITING_FOR_ANIMATION:
+            case DELAYED:
                 panelComponent.getChildren().add((LineComponent.builder())
-                        .left("Waiting for animation")
+                        .left("Delaying to next tick")
                         .build());
                 break;
             case ERROR:
