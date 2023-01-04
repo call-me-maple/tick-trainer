@@ -10,9 +10,9 @@ import static net.runelite.api.ItemID.*;
 public enum TickMethods
 {
     // TODO fix knife log add more tick items
-    KNIFE_LOG(AnimationID.FLETCHING_ATTACH_HEADS, item(KNIFE), any(item(TEAK_LOGS), item(MAHOGANY_LOGS))),
-    CLAW_VAMPS(5243, item(KEBBIT_CLAWS), any(item(LEATHER_VAMBRACES), item(GREEN_DHIDE_VAMBRACES), item(BLUE_DHIDE_VAMBRACES), item(RED_DHIDE_VAMBRACES), item(BLACK_DHIDE_VAMBRACES))),
-    HERB_TAR(AnimationID.HERBLORE_MAKE_TAR, item(SWAMP_TAR), any(item(GUAM_LEAF), item(HARRALANDER), item(MARRENTILL), item(TARROMIN)), item(PESTLE_AND_MORTAR)),
+    KNIFE_LOG(3, AnimationID.FLETCHING_ATTACH_HEADS, item(KNIFE), any(item(TEAK_LOGS), item(MAHOGANY_LOGS))),
+    CLAW_VAMPS(3, 5243, item(KEBBIT_CLAWS), any(item(LEATHER_VAMBRACES), item(GREEN_DHIDE_VAMBRACES), item(BLUE_DHIDE_VAMBRACES), item(RED_DHIDE_VAMBRACES), item(BLACK_DHIDE_VAMBRACES))),
+    HERB_TAR(3, AnimationID.HERBLORE_MAKE_TAR, item(SWAMP_TAR), any(item(GUAM_LEAF), item(HARRALANDER), item(MARRENTILL), item(TARROMIN)), item(PESTLE_AND_MORTAR)),
     UNKNOWN
     {
         @Override
@@ -26,16 +26,20 @@ public enum TickMethods
     private final ItemRequirement[] additionalItems;
     @Getter
     private final int animationId;
+    @Getter
+    private final int skillingTick;
 
     TickMethods()
     {
         this.animationId = -1;
+        this.skillingTick = -1;
         this.tickItems = new ItemRequirement[]{};
         this.additionalItems = new ItemRequirement[]{};
     }
 
-    TickMethods(int animationId, ItemRequirement tickTool, ItemRequirement tickItem, ItemRequirement... additionalItems)
+    TickMethods(int tick, int animationId, ItemRequirement tickTool, ItemRequirement tickItem, ItemRequirement... additionalItems)
     {
+        this.skillingTick = tick;
         this.animationId = animationId;
         this.tickItems = new ItemRequirement[]{tickTool, tickItem};
         this.additionalItems = additionalItems;

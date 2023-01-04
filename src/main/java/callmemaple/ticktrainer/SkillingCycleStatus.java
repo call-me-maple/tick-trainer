@@ -1,6 +1,6 @@
 package callmemaple.ticktrainer;
 
-public enum CycleStatus
+public enum SkillingCycleStatus
 {
     DELAYED,
     ON_CYCLE,
