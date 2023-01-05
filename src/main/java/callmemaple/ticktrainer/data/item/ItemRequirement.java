@@ -1,4 +1,4 @@
-package callmemaple.ticktrainer.item;
+package callmemaple.ticktrainer.data.item;
 
 import net.runelite.api.Client;
 import net.runelite.api.Item;

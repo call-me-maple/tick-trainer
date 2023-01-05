@@ -1,4 +1,4 @@
-package callmemaple.ticktrainer.item;
+package callmemaple.ticktrainer.data;
 
 import com.google.common.collect.ImmutableSortedSet;
 import lombok.Getter;
@@ -44,6 +44,11 @@ public enum Pickaxe
         this.cycle = cycle;
         this.miningLevel = miningLevel;
         this.itemIds = ImmutableSortedSet.copyOf(itemIds);
+    }
+
+    public boolean isRng()
+    {
+        return cycle - (int) cycle != 0;
     }
 
     public static Pickaxe findPickaxeFromItems(int itemId)

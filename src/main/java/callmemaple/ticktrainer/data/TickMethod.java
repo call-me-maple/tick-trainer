@@ -1,13 +1,14 @@
-package callmemaple.ticktrainer.item;
+package callmemaple.ticktrainer.data;
+import callmemaple.ticktrainer.data.item.ItemRequirement;
 import lombok.Getter;
 import net.runelite.api.AnimationID;
 import net.runelite.api.Item;
 
-import static callmemaple.ticktrainer.item.ItemRequirements.*;
+import static callmemaple.ticktrainer.data.item.ItemRequirements.*;
 import static net.runelite.api.ItemID.*;
 
 
-public enum TickMethods
+public enum TickMethod
 {
     // TODO fix knife log add more tick items
     KNIFE_LOG(3, AnimationID.FLETCHING_ATTACH_HEADS, item(KNIFE), any(item(TEAK_LOGS), item(MAHOGANY_LOGS))),
@@ -29,7 +30,7 @@ public enum TickMethods
     @Getter
     private final int skillingTick;
 
-    TickMethods()
+    TickMethod()
     {
         this.animationId = -1;
         this.skillingTick = -1;
@@ -37,7 +38,7 @@ public enum TickMethods
         this.additionalItems = new ItemRequirement[]{};
     }
 
-    TickMethods(int tick, int animationId, ItemRequirement tickTool, ItemRequirement tickItem, ItemRequirement... additionalItems)
+    TickMethod(int tick, int animationId, ItemRequirement tickTool, ItemRequirement tickItem, ItemRequirement... additionalItems)
     {
         this.skillingTick = tick;
         this.animationId = animationId;
@@ -75,7 +76,7 @@ public enum TickMethods
 
     public static boolean isInventoryAction(Item itemOne, Item itemTwo, Item[] inventory)
     {
-        for (TickMethods action : TickMethods.values()) {
+        for (TickMethod action : TickMethod.values()) {
             if (action.meetsRequirement(itemOne, itemTwo, inventory))
             {
                 return true;
@@ -84,9 +85,9 @@ public enum TickMethods
         return false;
     }
 
-    public static TickMethods findInventoryAction(Item itemOne, Item itemTwo, Item[] inventory)
+    public static TickMethod findInventoryAction(Item itemOne, Item itemTwo, Item[] inventory)
     {
-        for (TickMethods action : values()) {
+        for (TickMethod action : values()) {
             if (action.meetsRequirement(itemOne, itemTwo, inventory))
             {
                 return action;

@@ -1,6 +1,12 @@
 package callmemaple.ticktrainer;
 
-import callmemaple.ticktrainer.item.TickMethods;
+import callmemaple.ticktrainer.data.Error;
+import callmemaple.ticktrainer.data.SkillingCycleStatus;
+import callmemaple.ticktrainer.event.NodeCycleStart;
+import callmemaple.ticktrainer.event.SkillingCycleEnd;
+import callmemaple.ticktrainer.event.TickMethodClick;
+import callmemaple.ticktrainer.event.TickMethodStart;
+import callmemaple.ticktrainer.data.TickMethod;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
@@ -13,8 +19,8 @@ import javax.inject.Singleton;
 import java.util.HashSet;
 import java.util.Set;
 
-import static callmemaple.ticktrainer.Error.*;
-import static callmemaple.ticktrainer.SkillingCycleStatus.*;
+import static callmemaple.ticktrainer.data.Error.*;
+import static callmemaple.ticktrainer.data.SkillingCycleStatus.*;
 
 @Singleton
 @Slf4j
@@ -32,9 +38,10 @@ public class TickMethodCycle
     @Inject
     private PlayerState playerState;
 
-    @Getter private int nextSkillingTick;
-    @Getter private int skillingTickStart;
-    @Getter private TickMethods method;
+    @Inject
+    private SkillingCycle skillingCycle;
+
+    @Getter private TickMethod method;
     @Getter private SkillingCycleStatus status;
     @Getter private final Set<Error> errors;
 
@@ -42,9 +49,7 @@ public class TickMethodCycle
     {
         status = IDLE;
         errors = new HashSet<>();
-        nextSkillingTick = -1;
-        skillingTickStart = -1;
-        method = TickMethods.UNKNOWN;
+        method = TickMethod.UNKNOWN;
     }
 
     public void startCycle(TickMethodClick tickMethodClick)
@@ -53,8 +58,7 @@ public class TickMethodCycle
 
     public int getTickCycle()
     {
-        // Show 0 if in the future
-        return client.getTickCount() - skillingTickStart;
+        return client.getTickCount() - skillingCycle.getSkillingTickStart();
     }
 
     @Subscribe
@@ -65,6 +69,7 @@ public class TickMethodCycle
 		add any errors
 			too late, bad move, no node, another skill cycle
 		 */
+
         if (status != ON_CYCLE)
         {
             return;
@@ -94,7 +99,7 @@ public class TickMethodCycle
                 }
                 break;
         }
-        if (nextSkillingTick <= client.getTickCount())
+        if (skillingCycle.getNextSkillingTick() <= client.getTickCount())
         {
             status = IDLE;
         }
@@ -108,21 +113,25 @@ public class TickMethodCycle
     }
 
     @Subscribe
-    public void onNodeClick(NodeClick click)
+    public void onTickMethodStart(TickMethodStart start)
     {
-        log.info("{}", click);
+        errors.clear();
+        method = start.getMethod();
+        log.info("tick:{} method:{}", client.getTickCount(), method);
+        status = ON_CYCLE;
     }
 
     @Subscribe
-    public void onTickMethodClick(TickMethodClick click)
+    public void onNodeCycleStart(NodeCycleStart start)
     {
-
-        // TODO check if can start cycle
-        errors.clear();
-        method = click.getMethod();
-        skillingTickStart = click.getPredictedTick();
-        nextSkillingTick = skillingTickStart + method.getSkillingTick();
-        log.info("tick:{} nextSkillingTick:{} method:{}", client.getTickCount(), nextSkillingTick, method);
-        status = ON_CYCLE;
+        log.info("locked out of tick method cycle till {}", start.getNextSkillingTick());
+        status = LOCKED_OUT;
     }
+
+    @Subscribe
+    public void onSkillingCycleEnd(SkillingCycleEnd end)
+    {
+        status = IDLE;
+    }
+
 }

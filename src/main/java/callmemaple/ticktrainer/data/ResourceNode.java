@@ -1,14 +1,8 @@
-package callmemaple.ticktrainer.item;
-
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+package callmemaple.ticktrainer.data;
 
 import static net.runelite.api.ObjectID.*;
 
-public enum ResourceNodes
+public enum ResourceNode
 {
     // MINING
     TIN(ROCKS_11360, ROCKS_11361),
@@ -34,14 +28,14 @@ public enum ResourceNodes
 
     private final int[] objectIds;
 
-    ResourceNodes(int... objectIds)
+    ResourceNode(int... objectIds)
     {
         this.objectIds = objectIds;
     }
 
     public static boolean isNode(int testObjectId)
     {
-        for (ResourceNodes rn : values())
+        for (ResourceNode rn : values())
         {
             for (int objectId : rn.objectIds)
             {

@@ -1,8 +1,10 @@
 package callmemaple.ticktrainer;
 
-import callmemaple.ticktrainer.item.Pickaxe;
-import callmemaple.ticktrainer.item.ResourceNodes;
-import callmemaple.ticktrainer.item.TickMethods;
+import callmemaple.ticktrainer.event.NodeClick;
+import callmemaple.ticktrainer.event.TickMethodClick;
+import callmemaple.ticktrainer.data.Pickaxe;
+import callmemaple.ticktrainer.data.ResourceNode;
+import callmemaple.ticktrainer.data.TickMethod;
 import com.google.common.collect.ImmutableSortedSet;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -24,8 +26,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static callmemaple.ticktrainer.item.TickMethods.UNKNOWN;
-import static callmemaple.ticktrainer.item.TickMethods.findInventoryAction;
+import static callmemaple.ticktrainer.data.TickMethod.UNKNOWN;
+import static callmemaple.ticktrainer.data.TickMethod.findInventoryAction;
 import static net.runelite.api.MenuAction.*;
 
 @Singleton
@@ -50,6 +52,7 @@ public class PlayerState
     @Nullable
     private WorldPoint previousLocation;
     private boolean hasPlayerMoved;
+    private boolean hasPlayerMovedLastTick;
 
     // TODO make this the object in scene? not handling all interruptions
     @Getter
@@ -65,6 +68,7 @@ public class PlayerState
     {
         previousLocation = null;
         hasPlayerMoved = false;
+        hasPlayerMovedLastTick = false;
         targetedNode = -1;
     }
 
@@ -72,6 +76,7 @@ public class PlayerState
     public void onGameTick(GameTick event)
     {
         WorldPoint playerLocation = client.getLocalPlayer().getWorldLocation();
+        hasPlayerMovedLastTick = hasPlayerMoved;
         hasPlayerMoved = !playerLocation.equals(previousLocation);
         if (hasPlayerMoved) {
             log.info("player moved tick{} {} to {}", client.getTickCount(), previousLocation, playerLocation);
@@ -95,7 +100,7 @@ public class PlayerState
             case GAME_OBJECT_FIFTH_OPTION:
                 log.info("menuclick tick:{} {}->{} id:{} timestamp:{}", client.getTickCount(), event.getMenuOption(), event.getMenuTarget(), event.getId(), System.currentTimeMillis());
                 isResourceNodeClick(event);
-                if (ResourceNodes.isNode(event.getId()))
+                if (ResourceNode.isNode(event.getId()))
                 {
                     targetedNode = event.getId();
                 }
@@ -113,7 +118,7 @@ public class PlayerState
      * @param method the ticking method
      * @return true if player is in tick animation else false
      */
-    public boolean isPlayerInTickAnimation(TickMethods method)
+    public boolean isPlayerInTickAnimation(TickMethod method)
     {
         Player player = client.getLocalPlayer();
         log.info("check animation {} {}", player.getAnimation(), player.getAnimationFrame());
@@ -124,7 +129,7 @@ public class PlayerState
     private void isResourceNodeClick(MenuOptionClicked event)
     {
         int clickedId = event.getId();
-        if (!ResourceNodes.isNode(clickedId))
+        if (!ResourceNode.isNode(clickedId))
         {
             return;
         }
@@ -144,31 +149,10 @@ public class PlayerState
         int predictedTick = tickManager.getPredictedTick();
         NodeClick click = new NodeClick(clickedGameObject, predictedTick);
         eventBus.post(click);
-        log.info("can interact next tick");
+        log.info("is resource node click");
     }
 
-    public boolean nextToResourceNode(GameObject node)
-    {
-        WorldPoint playerLocation = client.getLocalPlayer().getWorldLocation();
 
-        Point minPoint = node.getSceneMinLocation();
-        Point maxPoint = node.getSceneMaxLocation();
-        int z = client.getPlane();
-        WorldPoint[] nodePerimeter = new WorldPoint[]{};
-        for (int x = minPoint.getX(); x <= maxPoint.getX(); x++)
-        {
-            for (int y = minPoint.getY(); y <= maxPoint.getY(); y++)
-            {
-                WorldPoint wp = WorldPoint.fromScene(client, x, y, z);
-                log.info("{} toPlayer:{}", wp, playerLocation.distanceTo2D(wp));
-                ArrayUtils.add(nodePerimeter, wp);
-            }
-        }
-
-        log.info("nodes found ?? {}", nodePerimeter.length);
-        log.info("distance to node {} player:{},{}", node.getWorldLocation().distanceTo2D(playerLocation), playerLocation.getRegionX(), playerLocation.getRegionY());
-        return false;
-    }
 
 
     /**
@@ -176,7 +160,7 @@ public class PlayerState
      *
      * @return
      */
-    private TickMethods isTickMethodClick(MenuOptionClicked event)
+    private TickMethod isTickMethodClick(MenuOptionClicked event)
     {
         int tickClicked = client.getTickCount();
         WorldPoint playerLocation = client.getLocalPlayer().getWorldLocation();
@@ -201,7 +185,7 @@ public class PlayerState
         {
             return UNKNOWN;
         }
-        TickMethods method = findInventoryAction(selectedItem, targetedItem, inventory.getItems());
+        TickMethod method = findInventoryAction(selectedItem, targetedItem, inventory.getItems());
         log.info("predictingTick:{} currentTick:{}", tickManager.getPredictedTick(), client.getTickCount());
         TickMethodClick tickMethodClick = new TickMethodClick(method, tickManager.getPredictedTick());
         eventBus.post(tickMethodClick);
@@ -233,6 +217,15 @@ public class PlayerState
     public boolean hasPlayerMoved()
     {
         return hasPlayerMoved;
+    }
+
+    /**
+     * Returns whether the player moved in the previous game tick or not.
+     * @return true if player moved, else false
+     */
+    public boolean hasPlayerMovedLastTick()
+    {
+        return hasPlayerMovedLastTick;
     }
 
     // TODO make work for object bigger than 1x1

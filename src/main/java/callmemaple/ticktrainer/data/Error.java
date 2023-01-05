@@ -1,5 +1,6 @@
-package callmemaple.ticktrainer;
+package callmemaple.ticktrainer.data;
 
+import callmemaple.ticktrainer.ui.DisplayMode;
 import lombok.Getter;
 
 // Link to readme?

@@ -1,4 +1,4 @@
-package callmemaple.ticktrainer.item;
+package callmemaple.ticktrainer.data.item;
 
 public class ItemRequirements
 {

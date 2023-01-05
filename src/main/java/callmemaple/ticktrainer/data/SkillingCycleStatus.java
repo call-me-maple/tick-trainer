@@ -1,8 +1,7 @@
-package callmemaple.ticktrainer;
+package callmemaple.ticktrainer.data;
 
 public enum SkillingCycleStatus
 {
-    DELAYED,
     ON_CYCLE,
     ERROR,
     IDLE,

@@ -1,4 +1,4 @@
-package callmemaple.ticktrainer;
+package callmemaple.ticktrainer.ui;
 
 public enum DisplayMode
 {

@@ -1,18 +1,21 @@
 package callmemaple.ticktrainer.ui;
 
 import callmemaple.ticktrainer.*;
-import callmemaple.ticktrainer.Error;
+import callmemaple.ticktrainer.data.Error;
+import callmemaple.ticktrainer.data.SkillingCycleStatus;
+import net.runelite.api.Client;
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.components.LineComponent;
 
 import javax.inject.Inject;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static callmemaple.ticktrainer.SkillingCycleStatus.*;
+import static callmemaple.ticktrainer.data.SkillingCycleStatus.*;
 
 public class TickTrainerOverlay extends OverlayPanel
 {
@@ -21,6 +24,10 @@ public class TickTrainerOverlay extends OverlayPanel
 
     @Inject
     private TickMethodCycle tickMethodCycle;
+    @Inject
+    private SkillingCycle skillingCycle;
+    @Inject
+    private Client client;
 
     @Inject
     private TickTrainerOverlay(TickTrainerPlugin plugin, TickTrainerConfig config)
@@ -74,11 +81,6 @@ public class TickTrainerOverlay extends OverlayPanel
                         .leftColor(config.idleColor())
                         .build());
                 break;
-            case DELAYED:
-                panelComponent.getChildren().add((LineComponent.builder())
-                        .left("Delaying to next tick")
-                        .build());
-                break;
             case ERROR:
                 for (Error error: tickMethodCycle.getErrors())
                 {
@@ -89,6 +91,16 @@ public class TickTrainerOverlay extends OverlayPanel
                 }
                 break;
             case LOCKED_OUT:
+                int ticksLeft = skillingCycle.remainingSkillingTicks();
+                Color lockedOutColor = config.errorColor();
+                if (ticksLeft == 0 && skillingCycle.getPickaxe().isRng())
+                {
+                    lockedOutColor = Color.PINK;
+                }
+                panelComponent.getChildren().add((LineComponent.builder())
+                        .left("Locked out for " + skillingCycle.remainingSkillingTicks())
+                        .leftColor(lockedOutColor)
+                        .build());
                 break;
         }
 
