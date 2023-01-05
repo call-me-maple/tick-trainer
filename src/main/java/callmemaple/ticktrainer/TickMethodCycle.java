@@ -52,10 +52,6 @@ public class TickMethodCycle
         method = TickMethod.UNKNOWN;
     }
 
-    public void startCycle(TickMethodClick tickMethodClick)
-    {
-    }
-
     public int getTickCycle()
     {
         return client.getTickCount() - skillingCycle.getSkillingTickStart();
@@ -64,12 +60,6 @@ public class TickMethodCycle
     @Subscribe
     public void onGameTick(GameTick gameTick)
     {
-        /*
-		validate states?
-		add any errors
-			too late, bad move, no node, another skill cycle
-		 */
-
         if (status != ON_CYCLE)
         {
             return;

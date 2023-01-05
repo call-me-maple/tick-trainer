@@ -1,7 +1,11 @@
 package callmemaple.ticktrainer;
 
 import callmemaple.ticktrainer.ui.DisplayMode;
-import net.runelite.client.config.*;
+import net.runelite.client.config.Config;
+import net.runelite.client.config.ConfigGroup;
+import net.runelite.client.config.ConfigItem;
+import net.runelite.client.config.ConfigSection;
+import net.runelite.client.config.Range;
 
 import java.awt.Color;
 
