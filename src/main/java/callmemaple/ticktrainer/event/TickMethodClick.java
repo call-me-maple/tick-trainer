@@ -1,11 +1,13 @@
 package callmemaple.ticktrainer.event;
 
 import callmemaple.ticktrainer.data.TickMethod;
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
-@Data
-public class TickMethodClick
+@Getter
+@AllArgsConstructor
+public class TickMethodClick extends Click
 {
     private final TickMethod method;
-    private final int predictedTick;
+    private final int tick;
 }

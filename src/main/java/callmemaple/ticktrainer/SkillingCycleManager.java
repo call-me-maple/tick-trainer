@@ -22,12 +22,12 @@ import java.util.stream.Stream;
 
 @Singleton
 @Slf4j
-public class SkillingCycle
+public class SkillingCycleManager
 {
     @Inject
-    private PlayerState playerState;
+    private PlayerManager playerManager;
     @Inject
-    private TickMethodCycle tickMethodCycle;
+    private TickingCycleManager tickingCycleManager;
     @Inject
     private Client client;
     @Inject
@@ -46,22 +46,22 @@ public class SkillingCycle
     public void onNodeClick(NodeClick click)
     {
         node = click.getNode();
-        clickTick = click.getPredictedTick();
+        clickTick = click.getTick();
         nodeClick = click;
-        pickaxe = playerState.getPickaxe();
+        pickaxe = playerManager.getPickaxe();
     }
 
     @Subscribe
     public void onTickMethodClick(TickMethodClick click)
     {
-        if (click.getPredictedTick() < nextSkillingTick)
+        if (click.getTick() < nextSkillingTick)
         {
             log.info("cant start new TICK METHOD cycle already in a skilling cycle");
             return;
         }
-        skillingTickStart = click.getPredictedTick();
+        skillingTickStart = click.getTick();
         nextSkillingTick = skillingTickStart + click.getMethod().getSkillingTick();
-        pickaxe = playerState.getPickaxe();
+        pickaxe = playerManager.getPickaxe();
         log.info("tick:{} nextSkillingTick:{} method:{}", client.getTickCount(), nextSkillingTick, click.getMethod());
         eventBus.post(new TickMethodStart(click.getMethod()));
     }
@@ -80,10 +80,9 @@ public class SkillingCycle
             return;
         }
         // Check if the player moved in tick or not. Object interactions require the user to already be on the tile.
-        if (nodeClick.isConsumed() &&
-                nextToResourceNode() &&
-                !playerState.hasPlayerMovedLastTick() &&
-                !playerState.hasPlayerMoved() &&
+        if (nextToResourceNode() &&
+                !playerManager.hasPlayerMovedLastTick() &&
+                !playerManager.hasPlayerMoved() &&
                 !inSkillingTick())
         {
             skillingTickStart = client.getTickCount();
@@ -94,11 +93,6 @@ public class SkillingCycle
         } else
         {
             log.info("cant start new NODE skilling cycle");
-        }
-        if (client.getTickCount() == clickTick)
-        {
-            log.info("consuming click on {}", client.getTickCount());
-            nodeClick.setConsumed(true);
         }
     }
 

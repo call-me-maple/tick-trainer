@@ -1,12 +1,13 @@
 package callmemaple.ticktrainer.event;
 
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import net.runelite.api.GameObject;
 
-@Data
-public class NodeClick
+@Getter
+@AllArgsConstructor
+public class NodeClick extends Click
 {
     private final GameObject node;
-    private final int predictedTick;
-    private boolean consumed = false;
+    private final int tick;
 }

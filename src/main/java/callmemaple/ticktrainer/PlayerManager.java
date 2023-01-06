@@ -32,7 +32,7 @@ import static net.runelite.api.MenuAction.*;
 
 @Singleton
 @Slf4j
-public class PlayerState
+public class PlayerManager
 {
     @Inject
     private Client client;
@@ -46,31 +46,10 @@ public class PlayerState
     @Inject
     private TickManager tickManager;
 
-    @Inject
-    private TickMethodCycle tickMethodCycle;
-
     @Nullable
     private WorldPoint previousLocation;
-    private boolean hasPlayerMoved;
-    private boolean hasPlayerMovedLastTick;
-
-    // TODO make this the object in scene? not handling all interruptions
-    @Getter
-    private int targetedNode;
-
-    private static final Set<MenuAction> MENU_ACTIONS_INTERRUPT = ImmutableSortedSet.of(
-            WALK, WIDGET_TARGET_ON_GROUND_ITEM, WIDGET_TARGET_ON_PLAYER,
-            WIDGET_TARGET_ON_NPC, WIDGET_TARGET_ON_GAME_OBJECT, WIDGET_TARGET_ON_WIDGET,
-            WIDGET_FIRST_OPTION, WIDGET_SECOND_OPTION, WIDGET_THIRD_OPTION, WIDGET_FOURTH_OPTION, WIDGET_FIFTH_OPTION);
-
-    @Inject
-    public PlayerState()
-    {
-        previousLocation = null;
-        hasPlayerMoved = false;
-        hasPlayerMovedLastTick = false;
-        targetedNode = -1;
-    }
+    private boolean hasPlayerMoved = false;
+    private boolean hasPlayerMovedLastTick = false;
 
     @Subscribe
     public void onGameTick(GameTick event)
@@ -84,35 +63,6 @@ public class PlayerState
         }
     }
 
-    @Subscribe
-    public void onMenuOptionClicked(MenuOptionClicked event)
-    {
-        switch (event.getMenuAction())
-        {
-            case WIDGET_TARGET_ON_WIDGET:
-                isTickMethodClick(event);
-                log.info("menuclick tick:{} {}->{} id:{} timestamp:{}", client.getTickCount(), event.getMenuOption(), event.getMenuTarget(), event.getId(), System.currentTimeMillis());
-                break;
-            case GAME_OBJECT_FIRST_OPTION:
-            case GAME_OBJECT_SECOND_OPTION:
-            case GAME_OBJECT_THIRD_OPTION:
-            case GAME_OBJECT_FOURTH_OPTION:
-            case GAME_OBJECT_FIFTH_OPTION:
-                log.info("menuclick tick:{} {}->{} id:{} timestamp:{}", client.getTickCount(), event.getMenuOption(), event.getMenuTarget(), event.getId(), System.currentTimeMillis());
-                isResourceNodeClick(event);
-                if (ResourceNode.isNode(event.getId()))
-                {
-                    targetedNode = event.getId();
-                }
-                break;
-            default:
-                if (MENU_ACTIONS_INTERRUPT.contains(event.getMenuAction()))
-                {
-                    log.info("menuclick_interrupt tick:{} {}->{} id:{} timestamp:{}", client.getTickCount(), event.getMenuOption(), event.getMenuTarget(), event.getId(), System.currentTimeMillis());
-                    targetedNode = -1;
-                }
-        }
-    }
 
     /**
      * @param method the ticking method
@@ -126,71 +76,6 @@ public class PlayerState
         return animationId == method.getAnimationId();
     }
 
-    private void isResourceNodeClick(MenuOptionClicked event)
-    {
-        int clickedId = event.getId();
-        if (!ResourceNode.isNode(clickedId))
-        {
-            return;
-        }
-
-        int z = client.getPlane();
-        int x = event.getParam0();
-        int y = event.getParam1();
-        Tile sceneTile = client.getScene().getTiles()[z][x][y];
-
-        GameObject clickedGameObject = Arrays.stream(sceneTile.getGameObjects())
-                .filter(gameObject -> gameObject != null && gameObject.getId() == clickedId)
-                .findFirst().orElse(null);
-        if (clickedGameObject == null)
-        {
-            return;
-        }
-        int predictedTick = tickManager.getPredictedTick();
-        NodeClick click = new NodeClick(clickedGameObject, predictedTick);
-        eventBus.post(click);
-        log.info("is resource node click");
-    }
-
-
-
-
-    /**
-     * If the menu option clicked is a valid tick method then start the cycle
-     *
-     * @return
-     */
-    private TickMethod isTickMethodClick(MenuOptionClicked event)
-    {
-        int tickClicked = client.getTickCount();
-        WorldPoint playerLocation = client.getLocalPlayer().getWorldLocation();
-
-        ItemContainer inventory = client.getItemContainer(InventoryID.INVENTORY);
-        if (inventory == null) {
-            return UNKNOWN;
-        }
-
-        // the selected widget is the item selected before the click (the white outlined item)
-        Widget widgetSelected = client.getSelectedWidget();
-        if (!client.isWidgetSelected() || widgetSelected == null)
-        {
-            return UNKNOWN;
-        }
-        Item selectedItem = new Item(widgetSelected.getItemId(), widgetSelected.getItemQuantity());
-
-        // getParam0() is the index of the item widget targeted
-        int inventoryIndex = event.getParam0();
-        Item targetedItem = inventory.getItem(inventoryIndex);
-        if (targetedItem == null)
-        {
-            return UNKNOWN;
-        }
-        TickMethod method = findInventoryAction(selectedItem, targetedItem, inventory.getItems());
-        log.info("predictingTick:{} currentTick:{}", tickManager.getPredictedTick(), client.getTickCount());
-        TickMethodClick tickMethodClick = new TickMethodClick(method, tickManager.getPredictedTick());
-        eventBus.post(tickMethodClick);
-        return method;
-    }
     /**
      * Get the current pickaxe the player would use base on their equipment and inventory.
      * TODO check if required level

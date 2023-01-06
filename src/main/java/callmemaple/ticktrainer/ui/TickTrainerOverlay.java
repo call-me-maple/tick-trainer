@@ -23,9 +23,9 @@ public class TickTrainerOverlay extends OverlayPanel
     private final TickTrainerConfig config;
 
     @Inject
-    private TickMethodCycle tickMethodCycle;
+    private TickingCycleManager tickingCycleManager;
     @Inject
-    private SkillingCycle skillingCycle;
+    private SkillingCycleManager skillingCycleManager;
     @Inject
     private Client client;
 
@@ -62,16 +62,16 @@ public class TickTrainerOverlay extends OverlayPanel
         panelComponent.getChildren().clear();
 
         List<SkillingCycleStatus> displayStatuses = new ArrayList<>(Arrays.asList(config.errorsOnly() ? new SkillingCycleStatus[]{ERROR} : values()));
-        if (!displayStatuses.contains(tickMethodCycle.getStatus()))
+        if (!displayStatuses.contains(tickingCycleManager.getStatus()))
         {
             return panelComponent.render(graphics);
         }
 
-        switch (tickMethodCycle.getStatus())
+        switch (tickingCycleManager.getStatus())
         {
             case ON_CYCLE:
                 panelComponent.getChildren().add((LineComponent.builder())
-                        .left("on cycle tick " + tickMethodCycle.getTickCycle())
+                        .left("on cycle tick " + tickingCycleManager.getTickCycle())
                         .leftColor(config.onCycleColor())
                         .build());
                 break;
@@ -82,7 +82,7 @@ public class TickTrainerOverlay extends OverlayPanel
                         .build());
                 break;
             case ERROR:
-                for (Error error: tickMethodCycle.getErrors())
+                for (Error error: tickingCycleManager.getErrors())
                 {
                     panelComponent.getChildren().add((LineComponent.builder())
                             .left("error: " + error.getMessage(config.displayMode()))
@@ -91,14 +91,14 @@ public class TickTrainerOverlay extends OverlayPanel
                 }
                 break;
             case LOCKED_OUT:
-                int ticksLeft = skillingCycle.remainingSkillingTicks();
+                int ticksLeft = skillingCycleManager.remainingSkillingTicks();
                 Color lockedOutColor = config.errorColor();
-                if (ticksLeft == 0 && skillingCycle.getPickaxe().isRng())
+                if (ticksLeft == 0 && skillingCycleManager.getPickaxe().isRng())
                 {
                     lockedOutColor = Color.PINK;
                 }
                 panelComponent.getChildren().add((LineComponent.builder())
-                        .left("Locked out for " + skillingCycle.remainingSkillingTicks())
+                        .left("Locked out for " + skillingCycleManager.remainingSkillingTicks())
                         .leftColor(lockedOutColor)
                         .build());
                 break;

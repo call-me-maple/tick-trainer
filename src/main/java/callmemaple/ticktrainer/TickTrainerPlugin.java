@@ -13,8 +13,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 
-import static net.runelite.api.MenuAction.*;
-
 @Slf4j
 @PluginDescriptor(
 	name = "tick trainer"
@@ -33,10 +31,11 @@ public class TickTrainerPlugin extends Plugin
 	{
 		overlayManager.add(overlay);
 		Collections.addAll(eventHandlers,
-				injector.getInstance(TickManager.class),		// tracks game ticks
-				injector.getInstance(TickMethodCycle.class),	// tracks tick method cycles
-				injector.getInstance(SkillingCycle.class),		// tracks regular skilling cycles
-				injector.getInstance(PlayerState.class));		// tracks the players location
+				injector.getInstance(TickManager.class),
+				injector.getInstance(TickingCycleManager.class),
+				injector.getInstance(SkillingCycleManager.class),
+				injector.getInstance(ClickManager.class),
+				injector.getInstance(PlayerManager.class));
 		eventHandlers.forEach(eventBus::register);
 		log.info("tick trainer started!");
 	}

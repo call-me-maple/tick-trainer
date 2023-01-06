@@ -1,9 +1,11 @@
 package callmemaple.ticktrainer.event;
 
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import net.runelite.api.GameObject;
 
-@Data
+@Getter
+@AllArgsConstructor
 public class NodeCycleStart
 {
     private final GameObject node;

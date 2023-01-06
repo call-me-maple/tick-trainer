@@ -4,7 +4,6 @@ import callmemaple.ticktrainer.data.Error;
 import callmemaple.ticktrainer.data.SkillingCycleStatus;
 import callmemaple.ticktrainer.event.NodeCycleStart;
 import callmemaple.ticktrainer.event.SkillingCycleEnd;
-import callmemaple.ticktrainer.event.TickMethodClick;
 import callmemaple.ticktrainer.event.TickMethodStart;
 import callmemaple.ticktrainer.data.TickMethod;
 import lombok.Getter;
@@ -24,7 +23,7 @@ import static callmemaple.ticktrainer.data.SkillingCycleStatus.*;
 
 @Singleton
 @Slf4j
-public class TickMethodCycle
+public class TickingCycleManager
 {
     @Inject
     private Client client;
@@ -36,16 +35,19 @@ public class TickMethodCycle
     private TickManager tickManager;
 
     @Inject
-    private PlayerState playerState;
+    private PlayerManager playerManager;
 
     @Inject
-    private SkillingCycle skillingCycle;
+    private ClickManager clickManager;
+
+    @Inject
+    private SkillingCycleManager skillingCycleManager;
 
     @Getter private TickMethod method;
     @Getter private SkillingCycleStatus status;
     @Getter private final Set<Error> errors;
 
-    TickMethodCycle()
+    TickingCycleManager()
     {
         status = IDLE;
         errors = new HashSet<>();
@@ -54,7 +56,7 @@ public class TickMethodCycle
 
     public int getTickCycle()
     {
-        return client.getTickCount() - skillingCycle.getSkillingTickStart();
+        return client.getTickCount() - skillingCycleManager.getSkillingTickStart();
     }
 
     @Subscribe
@@ -67,13 +69,13 @@ public class TickMethodCycle
         switch (getTickCycle())
         {
             case 0:
-                if (playerState.hasPlayerMoved())
+                if (playerManager.hasPlayerMoved())
                 {
-                    if (!playerState.isPlayerInTickAnimation(method))
+                    if (!playerManager.isPlayerInTickAnimation(method))
                     {
                         addError(USED_ITEM_TOO_SOON);
                     }
-                    if (!playerState.nextToAnyResourceNode())
+                    if (!playerManager.nextToAnyResourceNode())
                     {
                         addError(INVALID_LOCATION);
                     }
@@ -83,13 +85,13 @@ public class TickMethodCycle
                 }
                 break;
             case 1:
-                if (playerState.getTargetedNode() < 0)
+                if (clickManager.getTargetedNode() < 0)
                 {
                     addError(NO_INTERACTION);
                 }
                 break;
         }
-        if (skillingCycle.getNextSkillingTick() <= client.getTickCount())
+        if (skillingCycleManager.getNextSkillingTick() <= client.getTickCount())
         {
             status = IDLE;
         }
