@@ -4,6 +4,8 @@ import callmemaple.ticktrainer.*;
 import callmemaple.ticktrainer.data.Error;
 import callmemaple.ticktrainer.data.SkillingCycleStatus;
 import net.runelite.api.Client;
+import net.runelite.api.MenuAction;
+import net.runelite.client.ui.overlay.OverlayMenuEntry;
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.components.LineComponent;
 
@@ -16,6 +18,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static callmemaple.ticktrainer.data.SkillingCycleStatus.*;
+import static net.runelite.api.MenuAction.RUNELITE_OVERLAY_CONFIG;
 
 public class TickTrainerOverlay extends OverlayPanel
 {
@@ -34,6 +37,7 @@ public class TickTrainerOverlay extends OverlayPanel
     {
         this.plugin = plugin;
         this.config = config;
+        getMenuEntries().add(new OverlayMenuEntry(MenuAction.RUNELITE_OVERLAY, "Open", "More info"));
     }
 
     @Override

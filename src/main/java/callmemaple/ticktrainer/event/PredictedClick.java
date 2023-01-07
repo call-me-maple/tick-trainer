@@ -1,12 +1,8 @@
 package callmemaple.ticktrainer.event;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Data;
 
-import java.util.Comparator;
-
-@Getter
-@AllArgsConstructor
+@Data
 public class PredictedClick
 {
     private final Click click;

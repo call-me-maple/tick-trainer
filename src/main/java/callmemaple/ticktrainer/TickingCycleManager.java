@@ -85,7 +85,7 @@ public class TickingCycleManager
                 }
                 break;
             case 1:
-                if (clickManager.getTargetedNode() < 0)
+                if (skillingCycleManager.getTargetedNode() == null)
                 {
                     addError(NO_INTERACTION);
                 }

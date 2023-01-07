@@ -1,30 +1,22 @@
 package callmemaple.ticktrainer;
 
-import callmemaple.ticktrainer.data.Pickaxe;
 import callmemaple.ticktrainer.data.ResourceNode;
 import callmemaple.ticktrainer.data.TickMethod;
-import callmemaple.ticktrainer.event.Click;
-import callmemaple.ticktrainer.event.NodeClick;
-import callmemaple.ticktrainer.event.PredictedClick;
-import callmemaple.ticktrainer.event.TickMethodClick;
+import callmemaple.ticktrainer.event.*;
 import com.google.common.collect.ImmutableSortedSet;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
-import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
-import org.apache.commons.lang3.ArrayUtils;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import java.util.*;
 
-import static callmemaple.ticktrainer.data.TickMethod.UNKNOWN;
 import static callmemaple.ticktrainer.data.TickMethod.findInventoryAction;
 import static net.runelite.api.MenuAction.*;
 
@@ -33,9 +25,10 @@ import static net.runelite.api.MenuAction.*;
 public class ClickManager
 {
     private static final Set<MenuAction> MENU_ACTIONS_INTERRUPT = ImmutableSortedSet.of(
-            WALK, WIDGET_TARGET_ON_GROUND_ITEM, WIDGET_TARGET_ON_PLAYER,
-            WIDGET_TARGET_ON_NPC, WIDGET_TARGET_ON_GAME_OBJECT, WIDGET_TARGET_ON_WIDGET,
-            WIDGET_FIRST_OPTION, WIDGET_SECOND_OPTION, WIDGET_THIRD_OPTION, WIDGET_FOURTH_OPTION, WIDGET_FIFTH_OPTION);
+            WALK, WIDGET_TARGET_ON_GROUND_ITEM, WIDGET_TARGET_ON_PLAYER, WIDGET_TARGET_ON_NPC,
+            WIDGET_TARGET_ON_GAME_OBJECT, WIDGET_TARGET_ON_WIDGET, WIDGET_FIRST_OPTION, WIDGET_SECOND_OPTION,
+            WIDGET_THIRD_OPTION, WIDGET_FOURTH_OPTION, WIDGET_FIFTH_OPTION, GAME_OBJECT_FIRST_OPTION,
+            GAME_OBJECT_SECOND_OPTION, GAME_OBJECT_THIRD_OPTION, GAME_OBJECT_FOURTH_OPTION, GAME_OBJECT_FIFTH_OPTION);
 
     @Inject
     private Client client;
@@ -44,37 +37,33 @@ public class ClickManager
     @Inject
     private TickManager tickManager;
 
-    private PredictedClick[] clicks;
-
-    // TODO make this the object in scene? not handling all interruptions
-    @Getter
-    private int targetedNode = -1;
+    private final Queue<PredictedClick> predictedClicks;
 
     public ClickManager()
     {
-        clicks = new PredictedClick[]{};
+        predictedClicks = new LinkedList<>();
     }
 
     @Subscribe
     public void onGameTick(GameTick gameTick)
     {
-
-        for (PredictedClick click : clicks)
+        for (PredictedClick predictedClick : predictedClicks)
         {
-            log.info("{}", click);
+            log.info("sending PredictedClick:{}", predictedClick.getClick());
+            eventBus.post(predictedClick.getClick());
         }
-        int currentTick = client.getTickCount();
-        Arrays.stream(clicks)
-                .filter(click -> click.getPredictedTick() == currentTick)
-                .sorted((c1, c2) -> Long.compare(c2.getTimestamp(), c1.getTimestamp()))
-                .forEach(click -> eventBus.post(click.getClick()));
+        predictedClicks.clear();
+    }
 
-        clicks = Arrays.stream(clicks).filter(click -> click.getPredictedTick() != currentTick).toArray(PredictedClick[]::new);
-        if (clicks.length != 0)
-            log.info("waiting till next tick");
-        for (PredictedClick click : clicks)
+    private void addPredictedClick(PredictedClick predictedClick)
+    {
+        if (predictedClick.getPredictedTick() == client.getTickCount())
         {
-            log.info("{}", click);
+            log.info("sending click:{}", predictedClick);
+            eventBus.post(predictedClick.getClick());
+        } else
+        {
+            predictedClicks.add(predictedClick);
         }
     }
 
@@ -95,16 +84,11 @@ public class ClickManager
             case GAME_OBJECT_FIFTH_OPTION:
                 log.info("menuclick tick:{} {}->{} id:{} timestamp:{}", client.getTickCount(), click.getMenuOption(), click.getMenuTarget(), click.getId(), System.currentTimeMillis());
                 isResourceNodeClick(click);
-                if (ResourceNode.isNode(click.getId()))
-                {
-                    targetedNode = click.getId();
-                }
                 break;
             default:
                 if (MENU_ACTIONS_INTERRUPT.contains(click.getMenuAction()))
                 {
-                    log.info("menuclick_interrupt tick:{} {}->{} id:{} timestamp:{}", client.getTickCount(), click.getMenuOption(), click.getMenuTarget(), click.getId(), System.currentTimeMillis());
-                    targetedNode = -1;
+                    eventBus.post(new InterruptClick(click.getMenuTarget(), click.getMenuOption()));
                 }
         }
     }
@@ -112,24 +96,19 @@ public class ClickManager
 
     /**
      * If the menu option clicked is a valid tick method then start the cycle
-     *
-     * @return
      */
-    private TickMethod isTickMethodClick(MenuOptionClicked event)
+    private void isTickMethodClick(MenuOptionClicked event)
     {
-        int tickClicked = client.getTickCount();
-        WorldPoint playerLocation = client.getLocalPlayer().getWorldLocation();
-
         ItemContainer inventory = client.getItemContainer(InventoryID.INVENTORY);
         if (inventory == null) {
-            return UNKNOWN;
+            return;
         }
 
         // the selected widget is the item selected before the click (the white outlined item)
         Widget widgetSelected = client.getSelectedWidget();
         if (!client.isWidgetSelected() || widgetSelected == null)
         {
-            return UNKNOWN;
+            return;
         }
         Item selectedItem = new Item(widgetSelected.getItemId(), widgetSelected.getItemQuantity());
 
@@ -138,15 +117,16 @@ public class ClickManager
         Item targetedItem = inventory.getItem(inventoryIndex);
         if (targetedItem == null)
         {
-            return UNKNOWN;
+            return;
         }
         TickMethod method = findInventoryAction(selectedItem, targetedItem, inventory.getItems());
+        if (method == TickMethod.UNKNOWN)
+        {
+            return;
+        }
         log.info("predictingTick:{} currentTick:{}", tickManager.getPredictedTick(), client.getTickCount());
-        TickMethodClick tickMethodClick = new TickMethodClick(method, tickManager.getPredictedTick());
-        PredictedClick predictedClick = new PredictedClick(tickMethodClick, tickManager.getPredictedTick(), System.currentTimeMillis());
-        //TODO send now it this tick, else add to thing send next ontick
-        ArrayUtils.add(clicks, predictedClick);
-        return method;
+        TickMethodClick click = new TickMethodClick(method, tickManager.getPredictedTick());
+        addPredictedClick(new PredictedClick(click, tickManager.getPredictedTick(), System.currentTimeMillis()));
     }
     private void isResourceNodeClick(MenuOptionClicked event)
     {
@@ -168,10 +148,7 @@ public class ClickManager
         {
             return;
         }
-        int predictedTick = tickManager.getPredictedTick();
-        NodeClick click = new NodeClick(clickedGameObject, predictedTick);
-        PredictedClick predictedClick = new PredictedClick(click, tickManager.getPredictedTick(), System.currentTimeMillis());
-        ArrayUtils.add(clicks, predictedClick);
-        log.info("is resource node click");
+        NodeClick click = new NodeClick(clickedGameObject, tickManager.getPredictedTick());
+        addPredictedClick(new PredictedClick(click, tickManager.getPredictedTick(), System.currentTimeMillis()));
     }
 }

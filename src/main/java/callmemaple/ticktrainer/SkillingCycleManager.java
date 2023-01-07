@@ -33,22 +33,26 @@ public class SkillingCycleManager
     @Inject
     private EventBus eventBus;
 
-    @Getter private GameObject node;
+    @Getter
+    @Nullable
+    private GameObject targetedNode;
+
     @Getter private int nextSkillingTick;
     @Getter private int skillingTickStart;
     @Getter private Pickaxe pickaxe;
-    private int clickTick;
-
-    @Nullable
-    private NodeClick nodeClick;
 
     @Subscribe
     public void onNodeClick(NodeClick click)
     {
-        node = click.getNode();
-        clickTick = click.getTick();
-        nodeClick = click;
+        targetedNode = click.getNode();
         pickaxe = playerManager.getPickaxe();
+    }
+
+    @Subscribe
+    public void onInterruptClick(InterruptClick click)
+    {
+        log.info("menuclick_interrupt tick:{} {}->{} timestamp:{}", client.getTickCount(), click.getMenuOption(), click.getMenuTarget(), System.currentTimeMillis());
+        targetedNode = null;
     }
 
     @Subscribe
@@ -74,25 +78,15 @@ public class SkillingCycleManager
             eventBus.post(new SkillingCycleEnd());
         }
 
-        // Nothing to do
-        if (nodeClick == null)
-        {
-            return;
-        }
         // Check if the player moved in tick or not. Object interactions require the user to already be on the tile.
-        if (nextToResourceNode() &&
-                !playerManager.hasPlayerMovedLastTick() &&
-                !playerManager.hasPlayerMoved() &&
-                !inSkillingTick())
+        // TODO not working for b2b with no move needed. is 1 tick off
+        if (nextToResourceNode() && !playerManager.hasPlayerMoved() && !inSkillingTick())
         {
             skillingTickStart = client.getTickCount();
             nextSkillingTick = skillingTickStart + (int) Math.ceil(pickaxe.getCycle());
             log.info("starting skilling tick start:{} end:{}", skillingTickStart, nextSkillingTick);
-            eventBus.post(new NodeCycleStart(node, nextSkillingTick));
-            nodeClick = null;
-        } else
-        {
-            log.info("cant start new NODE skilling cycle");
+            eventBus.post(new NodeCycleStart(targetedNode, nextSkillingTick));
+            targetedNode = null;
         }
     }
 
@@ -109,14 +103,20 @@ public class SkillingCycleManager
 
     public boolean nextToResourceNode()
     {
+        if (targetedNode == null)
+        {
+            return false;
+        }
+
         WorldPoint playerLocation = client.getLocalPlayer().getWorldLocation();
         Set<WorldPoint> adjacentTiles = Stream.of(
                 playerLocation.dx(1),
                 playerLocation.dx(-1),
                 playerLocation.dy(1),
                 playerLocation.dy(-1)).collect(Collectors.toCollection(HashSet::new));
-        Point minPoint = node.getSceneMinLocation();
-        Point maxPoint = node.getSceneMaxLocation();
+
+        Point minPoint = targetedNode.getSceneMinLocation();
+        Point maxPoint = targetedNode.getSceneMaxLocation();
         int z = client.getPlane();
         for (int x = minPoint.getX(); x <= maxPoint.getX(); x++)
         {
@@ -130,7 +130,7 @@ public class SkillingCycleManager
                 }
             }
         }
-        log.info("distance to node {} player:{},{}", node.getWorldLocation().distanceTo2D(playerLocation), playerLocation.getRegionX(), playerLocation.getRegionY());
+        log.info("distance to node {} player:{},{}", targetedNode.getWorldLocation().distanceTo2D(playerLocation), playerLocation.getRegionX(), playerLocation.getRegionY());
         return false;
     }
 }

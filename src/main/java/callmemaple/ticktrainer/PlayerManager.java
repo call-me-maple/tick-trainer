@@ -58,7 +58,7 @@ public class PlayerManager
         hasPlayerMovedLastTick = hasPlayerMoved;
         hasPlayerMoved = !playerLocation.equals(previousLocation);
         if (hasPlayerMoved) {
-            log.info("player moved tick{} {} to {}", client.getTickCount(), previousLocation, playerLocation);
+            //log.info("player moved tick{} {} to {}", client.getTickCount(), previousLocation, playerLocation);
             previousLocation = playerLocation;
         }
     }
@@ -157,6 +157,4 @@ public class PlayerManager
         }
         return false;
     }
-
-
 }
