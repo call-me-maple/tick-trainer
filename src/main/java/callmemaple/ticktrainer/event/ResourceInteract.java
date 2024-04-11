@@ -6,8 +6,7 @@ import net.runelite.api.GameObject;
 
 @Getter
 @AllArgsConstructor
-public class NodeCycleStart
+public class ResourceInteract
 {
     private final GameObject node;
-    private final int nextSkillingTick;
 }

@@ -8,7 +8,7 @@ import static callmemaple.ticktrainer.data.item.ItemRequirements.*;
 import static net.runelite.api.ItemID.*;
 
 
-public enum TickMethod
+public enum TickingMethod
 {
     // TODO fix knife log add more tick items
     KNIFE_LOG(3, AnimationID.FLETCHING_ATTACH_HEADS, item(KNIFE), any(item(TEAK_LOGS), item(MAHOGANY_LOGS))),
@@ -28,19 +28,19 @@ public enum TickMethod
     @Getter
     private final int animationId;
     @Getter
-    private final int skillingTick;
+    private final int cycleLength;
 
-    TickMethod()
+    TickingMethod()
     {
         this.animationId = -1;
-        this.skillingTick = -1;
+        this.cycleLength = -1;
         this.tickItems = new ItemRequirement[]{};
         this.additionalItems = new ItemRequirement[]{};
     }
 
-    TickMethod(int tick, int animationId, ItemRequirement tickTool, ItemRequirement tickItem, ItemRequirement... additionalItems)
+    TickingMethod(int tick, int animationId, ItemRequirement tickTool, ItemRequirement tickItem, ItemRequirement... additionalItems)
     {
-        this.skillingTick = tick;
+        this.cycleLength = tick;
         this.animationId = animationId;
         this.tickItems = new ItemRequirement[]{tickTool, tickItem};
         this.additionalItems = additionalItems;
@@ -76,7 +76,7 @@ public enum TickMethod
 
     public static boolean isInventoryAction(Item itemOne, Item itemTwo, Item[] inventory)
     {
-        for (TickMethod action : TickMethod.values()) {
+        for (TickingMethod action : TickingMethod.values()) {
             if (action.meetsRequirement(itemOne, itemTwo, inventory))
             {
                 return true;
@@ -85,9 +85,9 @@ public enum TickMethod
         return false;
     }
 
-    public static TickMethod findInventoryAction(Item itemOne, Item itemTwo, Item[] inventory)
+    public static TickingMethod findInventoryAction(Item itemOne, Item itemTwo, Item[] inventory)
     {
-        for (TickMethod action : values()) {
+        for (TickingMethod action : values()) {
             if (action.meetsRequirement(itemOne, itemTwo, inventory))
             {
                 return action;

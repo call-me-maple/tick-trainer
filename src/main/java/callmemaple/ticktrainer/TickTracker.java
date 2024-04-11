@@ -21,7 +21,7 @@ import java.util.Queue;
  */
 @Singleton
 @Slf4j
-public class TickManager
+public class TickTracker
 {
 
     /**
@@ -44,7 +44,7 @@ public class TickManager
     private long tickTimesTotal;
     private long nextTickTime;
 
-    private TickManager(int bufferSize)
+    private TickTracker(int bufferSize)
     {
         if (bufferSize <= 1) {
             throw new IllegalArgumentException("bufferSize must be more than 1");
@@ -60,7 +60,7 @@ public class TickManager
     }
 
     @Inject
-    public TickManager()
+    public TickTracker()
     {
         this(DEFAULT_BUFFER_SIZE);
     }
@@ -103,6 +103,7 @@ public class TickManager
         int predictedTick = client.getTickCount();
         long predictedTime = lastTickTime + getAverageTickTime();
         long currentTime = System.currentTimeMillis();
+        log.debug("predictedTime:{} currentTime:{}", predictedTime, currentTime);
         if (predictedTime - currentTime < 150)
         {
             return predictedTick + 1;

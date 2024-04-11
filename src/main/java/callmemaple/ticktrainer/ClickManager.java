@@ -1,7 +1,7 @@
 package callmemaple.ticktrainer;
 
 import callmemaple.ticktrainer.data.ResourceNode;
-import callmemaple.ticktrainer.data.TickMethod;
+import callmemaple.ticktrainer.data.TickingMethod;
 import callmemaple.ticktrainer.event.*;
 import com.google.common.collect.ImmutableSortedSet;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +17,7 @@ import javax.inject.Singleton;
 
 import java.util.*;
 
-import static callmemaple.ticktrainer.data.TickMethod.findInventoryAction;
+import static callmemaple.ticktrainer.data.TickingMethod.findInventoryAction;
 import static net.runelite.api.MenuAction.*;
 
 @Singleton
@@ -35,35 +35,44 @@ public class ClickManager
     @Inject
     private EventBus eventBus;
     @Inject
-    private TickManager tickManager;
+    private TickTracker tickTracker;
 
-    private final Queue<PredictedClick> predictedClicks;
+    private final Queue<Click> possibleClicks;
 
     public ClickManager()
     {
-        predictedClicks = new LinkedList<>();
+        possibleClicks = new LinkedList<>();
     }
 
     @Subscribe
     public void onGameTick(GameTick gameTick)
     {
-        for (PredictedClick predictedClick : predictedClicks)
-        {
-            log.info("sending PredictedClick:{}", predictedClick.getClick());
-            eventBus.post(predictedClick.getClick());
-        }
-        predictedClicks.clear();
-    }
+        int currentTick = client.getTickCount();
 
-    private void addPredictedClick(PredictedClick predictedClick)
-    {
-        if (predictedClick.getPredictedTick() == client.getTickCount())
+        Click click = possibleClicks.peek();
+        if (click == null)
         {
-            log.info("sending click:{}", predictedClick);
-            eventBus.post(predictedClick.getClick());
-        } else
+            log.info("nothing to processes this currentTick:{}", currentTick);
+            return;
+        }
+
+        Click gameWorldClick = null;
+        for (int i = 0; i < possibleClicks.size(); i++)
         {
-            predictedClicks.add(predictedClick);
+            click = possibleClicks.poll();
+            if (click instanceof TickingClick) {
+                eventBus.post(click);
+            }
+            if (click instanceof ResourceClick) {
+                gameWorldClick = click;
+            }
+            if (click instanceof Interrupt) {
+                gameWorldClick = null;
+            }
+        }
+
+        if (gameWorldClick != null) {
+            eventBus.post(gameWorldClick);
         }
     }
 
@@ -71,6 +80,7 @@ public class ClickManager
     @Subscribe
     public void onMenuOptionClicked(MenuOptionClicked click)
     {
+        // TODO i think the ordering should be diff
         switch (click.getMenuAction())
         {
             case WIDGET_TARGET_ON_WIDGET:
@@ -88,7 +98,7 @@ public class ClickManager
             default:
                 if (MENU_ACTIONS_INTERRUPT.contains(click.getMenuAction()))
                 {
-                    eventBus.post(new InterruptClick(click.getMenuTarget(), click.getMenuOption()));
+                    possibleClicks.add(new Interrupt(tickTracker.getPredictedTick(), click.getMenuTarget(), click.getMenuOption()));
                 }
         }
     }
@@ -119,14 +129,14 @@ public class ClickManager
         {
             return;
         }
-        TickMethod method = findInventoryAction(selectedItem, targetedItem, inventory.getItems());
-        if (method == TickMethod.UNKNOWN)
+        TickingMethod method = findInventoryAction(selectedItem, targetedItem, inventory.getItems());
+        if (method == TickingMethod.UNKNOWN)
         {
             return;
         }
-        log.info("predictingTick:{} currentTick:{}", tickManager.getPredictedTick(), client.getTickCount());
-        TickMethodClick click = new TickMethodClick(method, tickManager.getPredictedTick());
-        addPredictedClick(new PredictedClick(click, tickManager.getPredictedTick(), System.currentTimeMillis()));
+        log.info("predictingTick:{} currentTick:{}", tickTracker.getPredictedTick(), client.getTickCount());
+        possibleClicks.add(new TickingClick(tickTracker.getPredictedTick(), method));
+
     }
     private void isResourceNodeClick(MenuOptionClicked event)
     {
@@ -148,7 +158,6 @@ public class ClickManager
         {
             return;
         }
-        NodeClick click = new NodeClick(clickedGameObject, tickManager.getPredictedTick());
-        addPredictedClick(new PredictedClick(click, tickManager.getPredictedTick(), System.currentTimeMillis()));
+        possibleClicks.add(new ResourceClick(tickTracker.getPredictedTick(), clickedGameObject));
     }
 }

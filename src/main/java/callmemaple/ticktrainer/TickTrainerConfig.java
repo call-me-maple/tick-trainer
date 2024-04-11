@@ -1,6 +1,6 @@
 package callmemaple.ticktrainer;
 
-import callmemaple.ticktrainer.ui.DisplayMode;
+import callmemaple.ticktrainer.data.ui.DisplayMode;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
@@ -9,7 +9,7 @@ import net.runelite.client.config.Range;
 
 import java.awt.Color;
 
-import static callmemaple.ticktrainer.ui.DisplayMode.MINIMAL;
+import static callmemaple.ticktrainer.data.ui.DisplayMode.MINIMAL;
 
 @ConfigGroup("ticktrainer")
 public interface TickTrainerConfig extends Config

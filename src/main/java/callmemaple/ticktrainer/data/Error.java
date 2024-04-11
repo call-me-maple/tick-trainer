@@ -1,6 +1,6 @@
 package callmemaple.ticktrainer.data;
 
-import callmemaple.ticktrainer.ui.DisplayMode;
+import callmemaple.ticktrainer.data.ui.DisplayMode;
 import lombok.Getter;
 
 // Link to readme?
@@ -25,7 +25,7 @@ public enum Error
 
     public String getMessage(DisplayMode displayMode)
     {
-        if (displayMode == DisplayMode.VERBOSE)
+        if (displayMode == DisplayMode.VERBOSE_EMPTY)
         {
             return verboseMessage;
         }
